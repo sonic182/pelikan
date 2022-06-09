@@ -1,0 +1,22 @@
+---
+- name: Install pelikan
+  hosts: all
+  user: vagrant
+
+  tasks:
+  - name: Ensure build dependencies
+    apt:
+      pkg:
+      - build-essential
+      - cmake
+      state: present
+      update_cache: yes
+    become: yes
+
+  - name: Build binary
+    ansible.builtin.shell: |
+      cd /vagrant
+      mkdir _build
+      cd _build
+      cmake -DCMAKE_BUILD_TYPE=Release ..
+      make -j

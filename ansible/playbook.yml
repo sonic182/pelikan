@@ -1,7 +1,7 @@
 ---
 - name: Install pelikan
   hosts: all
-  user: vagrant
+  user: root
 
   tasks:
   - name: Ensure build dependencies
@@ -13,10 +13,52 @@
       update_cache: yes
     become: yes
 
+  - name: Clone pelikan
+    ansible.builtin.git:
+      repo: https://github.com/twitter/pelikan.git
+      dest: /root/pelikan
+
   - name: Build binary
-    ansible.builtin.shell: |
-      cd /vagrant
-      mkdir _build
-      cd _build
-      cmake -DCMAKE_BUILD_TYPE=Release ..
-      make -j
+    ansible.builtin.shell:
+      cmd: |
+        cd /root/pelikan
+        mkdir _build
+        cd _build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        make -j
+      creates: /root/pelikan/_build/_bin/
+
+  - name: Template service file
+    ansible.builtin.template:
+      src: service.j2
+      dest: /etc/systemd/system/pelikan.service
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Creates config directory
+    file:
+      path: /etc/pelikan
+      state: directory
+
+  - name: Copy config
+    ansible.builtin.copy:
+      src: twemcache.conf
+      dest: /etc/pelikan/pelikan_twemcache.conf
+      mode: '0644'
+
+  - name: Copy binary
+    ansible.builtin.copy:
+      src: "{{item.src}}"
+      dest: "{{item.dest}}"
+      mode: '0755'
+      remote_src: yes
+    with_items:
+      - {src: "/root/pelikan/_build/_bin/pelikan_twemcache", dest: "/usr/bin/pelikan_twemcache"}
+        # - {src: "/root/pelikan/_build/_bin/pelikan_slimcache", dest: "/usr/bin/pelikan_slimcache"}
+
+  - name: Enable service pelikan
+    ansible.builtin.service:
+      name: pelikan
+      enabled: yes
+      state: started

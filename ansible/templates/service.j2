@@ -1,0 +1,14 @@
+
+[Unit]
+Description=Pelikan
+Before=httpd.service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pelikan_twemcache /etc/pelikan/pelikan_twemcache.conf
+
+# EnvironmentFile=-/etc/sysconfig/memcached
+
+[Install]
+WantedBy=multi-user.target
